@@ -1,10 +1,10 @@
-import tourDto from '../../models/tours/dto';
+import TourDto from '../../models/tours/dto';
 import axios, { AxiosResponse } from 'axios';
 import db from '../../utils/db/';
 import travelpayouts from '../../utils/travelpayots/';
 
-const searchCities = async (fromName: String, toName: String): Promise<tourDto> => {
-  const dto = new tourDto();
+const searchCities = async (fromName: String, toName: String): Promise<TourDto> => {
+  const dto = new TourDto();
   await axios
     .get(encodeURI(`https://www.travelpayouts.com/widgets_suggest_params?q=Из ${fromName} в ${toName}`))
     .then((res: AxiosResponse) => {
@@ -31,8 +31,8 @@ const createTourInDB = async (options: {
   dateEnd: String;
   desc: String;
   ownerId: Number;
-}): Promise<tourDto> => {
-  let dto = new tourDto();
+}): Promise<TourDto> => {
+  let dto = new TourDto();
   const user = await db.fetchObj('SELECT user_id FROM users WHERE user_id = ?', [options.ownerId]);
   if (Object.keys(user).length === 0) {
     dto.errCode = 'user_not_found';
@@ -72,8 +72,8 @@ const createTourInDB = async (options: {
   return dto;
 };
 
-const getUserTours = async (userId: Number): Promise<Array<tourDto>> => {
-  const dto = new tourDto();
+const getUserTours = async (userId: Number): Promise<Array<TourDto>> => {
+  const dto = new TourDto();
   const data = await db.fetchAll('SELECT * FROM tours WHERE owner_id = ?', [userId]).then((res) => {
     return res.map((tour) =>
       Object.assign(dto, {
@@ -133,28 +133,66 @@ const deleteTour = async (id: Number): Promise<void> => {
 const searchTicket = async (options: {
   from: String;
   to: String;
-  isOneWay: boolean;
+  isOneWay?: false;
   departDate: String;
   returnDate: String;
   adults: Number;
   infants?: Number;
   children?: Number;
-}): Promise<any> => {
-  const foundСities: tourDto = await searchCities(options.from, options.to);
+}): Promise<TourDto> => {
+  const foundСities: TourDto = await searchCities(options.from, options.to);
   if (foundСities.errCode) {
     return foundСities;
   }
-  travelpayouts
+  const list = await travelpayouts
     .cheap({
       origin: foundСities.fromCode,
       destination: foundСities.toCode,
       depart_date: options.departDate,
       return_date: options.returnDate,
-      generateUrls: { adults: options.adults, infants: options.infants, children: options.children, currency: 'rub', locale: 'ru' },
+      generateUrls: {
+        adults: options.adults,
+        infants: options.infants,
+        children: options.children,
+        currency: 'rub',
+        locale: 'ru',
+      },
     })
-    .then((res: any) => {
-      console.log(res);
-    });
+    .then(
+      (tickets: Array<any>): Array<any> => {
+        return tickets.map(
+          (ticket: {
+            price: Number;
+            airline: String;
+            flight_number: Number;
+            departure_at: String;
+            return_at: String;
+            expires_at: String;
+            origin: String;
+            destination: String;
+            number_of_changes: Number;
+            searchlink: String;
+          }) => {
+            return {
+              from: options.from,
+              to: options.to,
+              fromCode: ticket.origin,
+              toCode: ticket.destination,
+              dateStart: ticket.departure_at,
+              dateEnd: ticket.return_at,
+              price: Number(ticket.price),
+              ticketPrice:
+                Number(options.adults || 0) * Number(ticket.price) +
+                Number(options.children || 0) * Number(ticket.price),
+              numberOfChanges: ticket.number_of_changes,
+              airline: ticket.airline,
+              flightNumber: ticket.flight_number,
+            };
+          }
+        );
+      }
+    );
+  return list;
 };
 
 export { searchCities, createTourInDB, getUserTours, updateTour, deleteTour, searchTicket };

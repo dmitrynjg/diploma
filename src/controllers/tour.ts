@@ -85,4 +85,19 @@ const deleteTour = async (req: RequestWithPassport, res: Response): Promise<any>
     return res.sendStatus(500);
   }
 };
-export { isTourOperator, createTour, editTour, deleteTour };
+
+const searchTour = async (req: RequestWithPassport, res: Response): Promise<any> => {
+  try {
+    const { from, to, children, adults, dateStart, dateEnd } = req.body;
+    const ticketInfo: any = await tourService.searchTicket({ from, to, children, adults, dateStart, dateEnd });
+    if (ticketInfo.errCode) {
+      return res.send(ticketInfo);
+    }
+    tourService.searchTour({ fromCode, toCode, dateStart, dateEnd, children, adults });
+    return res.send(ticketInfo);
+  } catch (e) {
+    return res.sendStatus(500);
+  }
+};
+
+export { isTourOperator, createTour, editTour, deleteTour, searchTour };

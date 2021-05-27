@@ -23,4 +23,11 @@ export = class TourDTO extends DTO  {
 
   public desc: String | null = null;
 
+  public ticketPrice: Number | null = null;
+
+  public numberOfChanges: Number | null = null;
+
+  public airline: String | null = null;
+
+  public flightNumber: Number | null = null;
 }

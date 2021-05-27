@@ -1,11 +1,47 @@
-import tourDto from '../models/tours/dto';
+import TourDto from '../models/tours/dto';
 import * as tourRepository from '../repositories/tour/';
 
 async function searchCitites(from: String, to: String) {
-  const dto = new tourDto();
+  const dto = new TourDto();
   return tourRepository.searchCities(from, to).then((res: any) => res);
 }
-
+const searchTicket = async (options: {
+  from: String;
+  to: String;
+  adults: Number;
+  children?: Number;
+  dateStart: String;
+  dateEnd: String;
+}): Promise<TourDto> => {
+  const dto = new TourDto();
+  if (typeof options.from !== 'string') {
+    dto.errCode = 'from_not_string';
+    return dto;
+  }
+  if (typeof options.to !== 'string') {
+    dto.errCode = 'to_not_string';
+    return dto;
+  }
+  if (
+    !/^([0-9]{1,})$/.test(String(options.adults)) ||
+    (options.children && !/^([0-9]{1,})$/.test(String(options.children)))
+  ) {
+    dto.errCode = 'numberOfTicket_not_number';
+    return dto;
+  }
+  if (
+    !/^([0-9]){4}-([0-9]){2}-([0-9]){2}$/.test(String(options.dateStart)) &&
+    !/^([0-9]){4}-([0-9]){2}-([0-9]){2}$/.test(String(options.dateEnd))
+  ) {
+    dto.errCode = 'dateStart_or_dateEnd_not_date';
+    return dto;
+  }
+  if (new Date(String(options.dateStart)) >= new Date(String(options.dateEnd))) {
+    dto.errCode = 'dateStart_greater_dateEnd';
+    return dto;
+  }
+  // return tourRepository.searchTicket()
+};
 const createTour = async (tourInfo: {
   from: String;
   to: String;
@@ -15,8 +51,8 @@ const createTour = async (tourInfo: {
   dateEnd: String;
   desc: String;
   ownerId: Number | null;
-}): Promise<tourDto> => {
-  const dto = new tourDto();
+}): Promise<TourDto> => {
+  const dto = new TourDto();
   if (!/^([0-9]{1,})$/.test(String(tourInfo.ownerId))) {
     dto.errCode = 'userId_not_number';
     return dto;
@@ -43,8 +79,8 @@ const createTour = async (tourInfo: {
     return dto;
   }
   if (
-    !/^([0-9]){4}-([0-9]){2}-([0-9]){2} ([0-9]){2}:([0-9]){2}$/.test(String(tourInfo.dateStart)) &&
-    !/^([0-9]){4}-([0-9]){2}-([0-9]){2} ([0-9]){2}:([0-9]){2}$/.test(String(tourInfo.dateEnd))
+    !/^([0-9]){4}-([0-9]){2}-([0-9]){2}$/.test(String(tourInfo.dateStart)) &&
+    !/^([0-9]){4}-([0-9]){2}-([0-9]){2}$/.test(String(tourInfo.dateEnd))
   ) {
     dto.errCode = 'dateStart_or_dateEnd_not_date';
     return dto;
@@ -83,8 +119,8 @@ const editTour = async (tourInfo: {
   // ownerId: Number | null;
   tourId: Number;
   ownerId: Number;
-}): Promise<tourDto> => {
-  const dto = new tourDto();
+}): Promise<TourDto> => {
+  const dto = new TourDto();
   if (!/^([0-9]{1,})$/.test(String(tourInfo.tourId))) {
     dto.errCode = 'tourId_not_number';
     return dto;
@@ -93,8 +129,8 @@ const editTour = async (tourInfo: {
     dto.errCode = 'ownerId_not_number';
     return dto;
   }
-  const userTourList: Array<tourDto> = await tourRepository.getUserTours(tourInfo.ownerId);
-  const editTour: Array<tourDto> = userTourList.filter((tour: tourDto) => tour.id === Number(tourInfo.tourId));
+  const userTourList: Array<TourDto> = await tourRepository.getUserTours(tourInfo.ownerId);
+  const editTour: Array<TourDto> = userTourList.filter((tour: TourDto) => tour.id === Number(tourInfo.tourId));
   if (editTour.length === 0) {
     dto.errCode = 'tour_not_found';
     return dto;
@@ -134,7 +170,7 @@ const editTour = async (tourInfo: {
   }
 
   if (tourInfo.dateStart) {
-    if (!/^([0-9]){4}-([0-9]){2}-([0-9]){2} ([0-9]){2}:([0-9]){2}$/.test(String(tourInfo.dateStart))) {
+    if (!/^([0-9]){4}-([0-9]){2}-([0-9]){2}$/.test(String(tourInfo.dateStart))) {
       dto.errCode = 'dateStart_not_date';
       return dto;
     }
@@ -142,7 +178,7 @@ const editTour = async (tourInfo: {
   }
 
   if (tourInfo.dateEnd) {
-    if (!/^([0-9]){4}-([0-9]){2}-([0-9]){2} ([0-9]){2}:([0-9]){2}$/.test(String(tourInfo.dateEnd))) {
+    if (!/^([0-9]){4}-([0-9]){2}-([0-9]){2}$/.test(String(tourInfo.dateEnd))) {
       dto.errCode = 'dateEnd_not_date';
       return dto;
     }
@@ -190,15 +226,15 @@ const editTour = async (tourInfo: {
   return dto;
 };
 
-const deleteTour = async (options: { id: Number; ownerId: Number }): Promise<tourDto> => {
-  const dto = new tourDto;
+const deleteTour = async (options: { id: Number; ownerId: Number }): Promise<TourDto> => {
+  const dto = new TourDto();
   if (!/^([0-9]{1,})$/.test(String(options.id))) {
     dto.errCode = 'tourId_not_number';
     return dto;
   }
-  const userTourList: Array<tourDto> = await tourRepository.getUserTours(options.ownerId);
-  const editTour: Array<tourDto> = userTourList.filter((tour: tourDto) => tour.id === Number(options.id));
-  
+  const userTourList: Array<TourDto> = await tourRepository.getUserTours(options.ownerId);
+  const editTour: Array<TourDto> = userTourList.filter((tour: TourDto) => tour.id === Number(options.id));
+
   if (editTour.length === 0) {
     dto.errCode = 'tour_not_found';
     return dto;
@@ -207,4 +243,21 @@ const deleteTour = async (options: { id: Number; ownerId: Number }): Promise<tou
   return dto;
 };
 
-export { createTour, searchCitites, editTour, deleteTour };
+const searchTour = async (options: {
+  fromCode: String;
+  toCode: String;
+  dateStart: String;
+  dateEnd: String;
+  children: Number;
+  adults: Number;
+}) => {
+  if(typeof options.fromCode !== 'string') {
+
+  }
+  if (!/^([0-9]{1,})$/.test(String(options.id))) {
+    dto.errCode = 'tourId_not_number';
+    return dto;
+  }
+};
+
+export { createTour, searchCitites, editTour, deleteTour, searchTicket, searchTour };
