@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon ./server.js",
-    "prod": "nodemon --exec babel-node dist/server",
-    "build": "rollup server.js --format cjs --file bundle.js"
+    "start": "nodemon ./server.js"
   },
   "dependencies": {
     "@react-ssr/express": "^0.24.0",
@@ -22,7 +20,6 @@
     "npm-run-all": "^4.1.5",
     "passport": "^0.4.1",
     "passport-google-oauth20": "^2.0.0",
-    "png-to-jpeg": "^1.0.1",
     "react": "^16.14.0",
     "react-bootstrap": "^1.6.0",
     "sequelize": "^6.6.2",
