@@ -2,7 +2,7 @@ const { Container, Card, Button, Pagination, Accordion, FormControl } = require(
 import axios from 'axios';
 import 'bootstrap-css';
 import { useState } from 'react';
-import './search.scss';
+
 
 const Search = ({ list = [], page }) => {
   const [quantity, setQuantity] = useState({});
