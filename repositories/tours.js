@@ -5,10 +5,13 @@ const axios = require('axios');
 const travelpayotsApi = require('../modules/travelpayouts');
 const orderModel = require('../models/Order');
 
-const getTours = async (where) => {
+const getTours = async (where, whereTour, offset = 0, limit = 10) => {
   const list = await tourModel.findAll({
     attributes: [
       ['tour_id', 'id'],
+      'title',
+      ['tour_from_code', 'fromCode'],
+      ['tour_to_code', 'toCode'],
       'desc',
       'price',
       [
@@ -42,11 +45,26 @@ const getTours = async (where) => {
         },
       },
     ],
+    where: whereTour,
+    offset,
+    limit,
   });
   return list;
 };
 
-const createTour = async ({ numberOfSeats, from, to, desc, price, dateStart, dateEnd, fromCode, toCode, email }) => {
+const createTour = async ({
+  numberOfSeats,
+  title,
+  from,
+  to,
+  desc,
+  price,
+  dateStart,
+  dateEnd,
+  fromCode,
+  toCode,
+  email,
+}) => {
   const user = await userModel.findOne({
     attributes: ['id'],
     raw: true,
@@ -60,6 +78,7 @@ const createTour = async ({ numberOfSeats, from, to, desc, price, dateStart, dat
   return tourModel
     .create({
       desc,
+      title,
       price,
       number_of_seats: numberOfSeats,
       tour_from: from,
@@ -142,7 +161,7 @@ const getTour = async ({ id }) => {
     .then((res) => res);
 };
 
-const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart, dateEnd, fromCode, toCode }) => {
+const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart, dateEnd, fromCode, toCode, title }) => {
   const updateData = {};
   if (desc) {
     updateData.desc = desc;
@@ -171,6 +190,9 @@ const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart,
   if (toCode) {
     updateData.to_code = toCode;
   }
+  if (title) {
+    updateData.title = title;
+  }
   await tourModel.update(updateData, { where: { tour_id: id } });
 };
 
@@ -193,4 +215,18 @@ const createOrder = async ({ id, name, email, quantity, airlineId, flightPrice }
   });
 };
 
-module.exports = { getTours, createTour, searchCities, searchTickets, getTour, createOrder, deleteTour, updateTour };
+const uploadTour = async ({ id, image }) => {
+  await tourModel.update({ poster: image }, { where: { tour_id: id } });
+};
+
+module.exports = {
+  getTours,
+  createTour,
+  searchCities,
+  searchTickets,
+  getTour,
+  createOrder,
+  deleteTour,
+  updateTour,
+  uploadTour,
+};

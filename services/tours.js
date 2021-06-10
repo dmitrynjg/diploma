@@ -1,3 +1,4 @@
+const isBase64 = require('is-base64');
 const validator = require('validator');
 const tourRepository = require('../repositories/tours');
 
@@ -15,18 +16,34 @@ const searchCities = async ({ from, to }) => {
   });
 };
 
-const createTour = async ({ numberOfSeats, from, to, price, dateStart, dateEnd, email, desc }) => {
+const uploadTour = async ({ id, image }) => {
   try {
-    if (!validator.isEmail(email || '')) {
+    if (!isBase64(image, { mimeRequired: true })) {
+      return { ok: false, message: 'Вы должны передать картинку в base64' };
+    }
+    if (!validator.isInt(String(id))) {
+      return { ok: false, message: 'id должно быть числом' };
+    }
+    await tourRepository.uploadTour({ id, image });
+    return { ok: true, message: 'Картинка сохранена' };
+  } catch (e) {
+    return { ok: false, message: 'Произошла ошибка' };
+  }
+};
+const createTour = async ({ numberOfSeats, from, to, price, dateStart, dateEnd, email, desc, title }) => {
+  try {
+    if (!validator.isEmail(String(email || ''))) {
       return { ok: false, message: 'Это не email' };
     }
-    if (!validator.isDate(dateStart || '')) {
+    if (!validator.isDate(String(dateStart || ''))) {
       return { ok: false, message: 'Дата отправки яв-ся не дата' };
     }
     if (!validator.isDate(dateEnd || '')) {
       return { ok: false, message: 'Дата окончание яв-ся не дата' };
     }
-
+    if (typeof title !== 'string') {
+      return { ok: false, message: 'Заголовок должен быть тектсом' };
+    }
     if (new Date(dateStart) >= new Date(dateEnd)) {
       return { ok: false, message: 'Дата начало тура должна быть раньше чем дата окончания' };
     }
@@ -51,6 +68,7 @@ const createTour = async ({ numberOfSeats, from, to, price, dateStart, dateEnd, 
     }
     const tour = await tourRepository.createTour({
       numberOfSeats,
+      title,
       from,
       to,
       desc,
@@ -66,6 +84,7 @@ const createTour = async ({ numberOfSeats, from, to, price, dateStart, dateEnd, 
     }
     return { ok: false, message: 'Не удалось создать тур' };
   } catch (e) {
+    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
@@ -119,7 +138,7 @@ const buyTour = async ({ id, name, email, quantity, airlineId }) => {
   }
 };
 
-const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart, dateEnd, fromCode, toCode }) => {
+const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart, dateEnd, fromCode, toCode, title }) => {
   try {
     const updateData = {};
     if (!validator.isInt(String(id))) {
@@ -135,6 +154,12 @@ const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart,
         return { ok: false, message: 'Описание должно быть текстом' };
       }
       updateData.desc = desc;
+    }
+    if (title) {
+      if (typeof title !== 'string') {
+        return { ok: false, message: 'Заголовок должен быть текстом' };
+      }
+      updateData.title = title;
     }
     if (price) {
       if (!validator.isNumeric(String(price))) {
@@ -193,6 +218,7 @@ const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart,
     await tourRepository.updateTour(updateData);
     return { ok: true, message: 'Изменение прошло успешно' };
   } catch (e) {
+    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
@@ -209,4 +235,88 @@ const deleteTour = async (id) => {
   }
 };
 
-module.exports = { getTours, createTour, searchCities, buyTour, updateTour, deleteTour };
+const searchTours = async ({ from, to, page, dateStart, dateEnd }) => {
+  try {
+    const limit = 1;
+    const where = {};
+    if (page) {
+      if (!validator.isInt(String(page))) {
+        return { ok: false, message: 'page должна быть числом' };
+      }
+      if (page < 1) {
+        return { ok: false, message: 'page должна быть минимум 1' };
+      }
+    }
+    if (from) {
+      if (typeof from !== 'string') {
+        return { ok: false, message: 'from должен быть текстом' };
+      }
+    }
+    if (to) {
+      if (typeof to !== 'string') {
+        return { ok: false, message: 'Too должна быть числом' };
+      }
+    }
+    if (dateStart) {
+      if (!validator.isDate(String(dateStart))) {
+        return { ok: false, message: 'дата отправки должна быть датой' };
+      }
+      where.date_start = dateStart;
+    }
+    if (dateEnd) {
+      if (!validator.isDate(String(dateEnd))) {
+        return { ok: false, message: 'дата окончание должна быть датой' };
+      }
+      where.date_end = dateEnd;
+    }
+
+    if (from && to) {
+      const searchCities = await tourRepository.searchCities({ from, to });
+
+      if (Object.keys(searchCities).length === 0) {
+        return { ok: false, message: 'Города не нейдены' };
+      }
+      where.tour_from_code = searchCities.fromCode;
+      where.tour_to_code = searchCities.toCode;
+    }
+    const tours = await tourRepository.getTours(null, where, ((page ? page : 1) - 1) * limit, limit);
+    let data = [];
+    const cities = [];
+
+    tours.forEach((tour) => {
+      if (cities.indexOf(`${tour.fromCode} ${tour.toCode}`) === -1) {
+        cities.push(`${tour.fromCode} ${tour.toCode}`);
+      }
+    });
+    const ticketPrice = {};
+    await Promise.all(
+      cities.map(async (name) => {
+        const fromAndTo = name.split(' ');
+        const tickets = await tourRepository.searchTickets({
+          dateStart,
+          dateEnd,
+          fromCode: fromAndTo[0],
+          toCode: fromAndTo[1],
+          quantity: 1,
+        });
+
+        ticketPrice[name] = tickets[0];
+      })
+    );
+    data = tours.map((tour) => {
+      const ticketKey = `${tour.fromCode} ${tour.toCode}`;
+      return {
+        ...tour,
+        ticketPrice: ticketPrice[ticketKey].price,
+        airId: ticketPrice[ticketKey].id,
+        airline: ticketPrice[ticketKey].airline,
+        numberOfChanges: ticketPrice[ticketKey].numberOfChanges,
+      };
+    });
+    return { ok: true, message: 'Поиск завершен', data };
+  } catch (e) {
+    return { ok: false, message: 'Произошла ошибка' };
+  }
+};
+
+module.exports = { getTours, createTour, searchCities, buyTour, updateTour, deleteTour, uploadTour, searchTours };
