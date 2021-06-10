@@ -7,7 +7,7 @@ export default function ({ title }) {
       <Head>
         <title>{title}</title>
         <meta charSet='utf-8' />
-        <meta name='viewport' content='minimum-scale=1, initial-scale=1, width=device-width' />
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <link rel='shortcut icon' href='/favicon.ico' />
       </Head>
       <body>

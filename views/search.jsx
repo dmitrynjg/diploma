@@ -1,9 +1,11 @@
-const { Container, Card, Button, Pagination, Modal } = require('react-bootstrap');
+const { Container, Card, Button, Pagination, Accordion, FormControl } = require('react-bootstrap');
+import axios from 'axios';
 import 'bootstrap-css';
 import { useState } from 'react';
+import './search.scss';
 
 const Search = ({ list = [], page }) => {
-  const [tourId, setId] = useState(null);
+  const [quantity, setQuantity] = useState({});
   return (
     <Container>
       {list.length === 0 ? (
@@ -19,68 +21,91 @@ const Search = ({ list = [], page }) => {
         <>
           {list.map((tour) => (
             <>
-              {tourId === tour.id && (
-                <div className='d-flex justify-content align-items-center' style={{ height: '100vh' }}>
-                  <Modal.Dialog>
-                    <Modal.Header closeButton>
-                      <Modal.Title>{tour.from + ' - ' + tour.to}</Modal.Title>
-                    </Modal.Header>
-
-                    <Modal.Body>
-                      <p>Modal body text goes here.</p>
-                    </Modal.Body>
-
-                    <Modal.Footer>
-                      <Button variant='secondary' onClick={() => setId(null)}>
-                        Close
-                      </Button>
-                      <Button variant='primary'>Приобрести тур</Button>
-                    </Modal.Footer>
-                  </Modal.Dialog>
-                </div>
-              )}
-              <Card border='primary'>
-                <div className='d-inline-flex'>
-                  <div className='w-25'>
-                    <Card.Img variant='top' src={tour.poster} style={{ width: '100%' }} />
-                    <Button variant='primary' className='w-100' onClick={() => setId(tour.id)}>
-                      Купить
-                    </Button>
+              <Accordion defaultActiveKey='0'>
+                <Card border='primary'>
+                  <div className='d-flex w-sm-100'>
+                    <div className='w-25 w-sm-100'>
+                      <Card.Img variant='top' src={tour.poster} style={{ width: '100%' }} />
+                      <Accordion.Toggle as={Button} eventKey={tour.id} className='w-100'>
+                        Преобрести тур
+                      </Accordion.Toggle>
+                    </div>
+                    <div className='content w-75 ml-2'>
+                      <Card.Header className='d-flex'>
+                        <Card.Title>
+                          {tour.title} {Number(tour.price) + Number(tour.ticketPrice)} RUB
+                        </Card.Title>
+                      </Card.Header>
+                      <Card.Body>
+                        <div className='desc d-flex mt-3'>
+                          <Card.Text className='w-50'>
+                            <b>Откуда:</b> {tour.from} {tour.dateStart}
+                            <br />
+                            <b>Куда:</b> {tour.to} {tour.dateEnd}
+                            <br />
+                            <b>Стоимость тура:</b> {tour.price} RUB
+                            <br />
+                            <b>Стоимость билета:</b> {tour.ticketPrice} RUB
+                            <br />
+                          </Card.Text>
+                          <Card.Text className='w-50'>
+                            <b>Авиалиния:</b> {tour.airline}
+                            <br />
+                            <b>Количество мест в туре:</b> {tour.numberOfSeats}
+                            <br />
+                            <b>Свободных мест в туре:</b> {tour.freePlaces}
+                            <br />
+                            <b>Количество пересадок:</b> {tour.numberOfChanges}
+                            <br />
+                          </Card.Text>
+                        </div>
+                      </Card.Body>
+                    </div>
                   </div>
-                  <div className='content w-75 ml-2'>
-                    <Card.Header className='d-flex'>
-                      <Card.Title>
-                        {tour.from} - {tour.to} {Number(tour.price) + Number(tour.ticketPrice)} RUB
-                      </Card.Title>
-                    </Card.Header>
-                    <Card.Body>
-                      <div className='desc d-flex mt-3'>
-                        <Card.Text className='w-50'>
-                          <b>Стоимость тура:</b> {tour.price} RUB
+                  <Accordion.Collapse eventKey={tour.id}>
+                    <Card.Body className='p-4'>
+                      <Card.Text>
+                        <div className='d-flex'>
+                          <div className='w-50'>
+                            <FormControl
+                              placeholder='Количество билетов'
+                              type='number'
+                              onChange={(e) => {
+                                setQuantity({ ...quantity, [tour.id]: e.target.value });
+                              }}
+                            />
+                          </div>
+                          <div className='w-50'>
+                            <Button
+                              variant='outline-primary'
+                              className='w-100'
+                              onClick={() => {
+                                axios
+                                  .post('/api/buy/tour', {
+                                    id: tour.id,
+                                    quantity: quantity[tour.id],
+                                    airId: tour.airId,
+                                  })
+                                  .then((res) => alert(res.date.message));
+                              }}
+                            >
+                              Купить за{' '}
+                              {(quantity[tour.id] ? quantity[tour.id] : 1) *
+                                (Number(tour.price) + Number(tour.ticketPrice))}{' '}
+                              RUB
+                            </Button>
+                          </div>
+                        </div>
+                        <p className='mt-3'>
+                          <b>Описание: </b>
+                          {tour.desc}
                           <br />
-                          <b>Стоимость билета:</b> {tour.ticketPrice} RUB
-                          <br />
-                          <b>Дата начала:</b> {tour.dateStart}
-                          <br />
-                          <b>Дата окончания:</b> {tour.dateEnd}
-                          <br />
-                        </Card.Text>
-                        <Card.Text className='w-50'>
-                          <b>Авиалиния:</b> {tour.airline}
-                          <br />
-                          <b>Количество мест в туре:</b> {tour.numberOfSeats}
-                          <br />
-                          <b>Свободных мест в туре:</b> {tour.freePlaces}
-                          <br />
-                          <b>Количество пересадок:</b> {tour.numberOfChanges}
-                          <br />
-                        </Card.Text>
-                      </div>
-                      <Card.Text>{tour.desc}</Card.Text>
+                        </p>
+                      </Card.Text>
                     </Card.Body>
-                  </div>
-                </div>
-              </Card>
+                  </Accordion.Collapse>
+                </Card>
+              </Accordion>
             </>
           ))}
           <Pagination className='mt-2'>
@@ -93,7 +118,16 @@ const Search = ({ list = [], page }) => {
             )}
             <Pagination.Next
               onClick={() => {
-                document.location.href = document.location.href.replace(`page=${page}`, `page=${Number(page) + 1}`);
+                let url = document.location.href;
+
+                if (document.location.search.search('page') === -1) {
+                  if (document.location.search === '') {
+                    url += `?page=${page}`;
+                  } else {
+                    url += `&page=${page}`;
+                  }
+                }
+                document.location.href = url.replace(`page=${page}`, `page=${Number(page) + 1}`);
               }}
             />
           </Pagination>

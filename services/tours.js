@@ -1,7 +1,7 @@
 const isBase64 = require('is-base64');
 const validator = require('validator');
 const tourRepository = require('../repositories/tours');
-
+const { Op } = require('sequelize');
 const getTours = async (where) => tourRepository.getTours(where).then((res) => res);
 
 const searchCities = async ({ from, to }) => {
@@ -84,7 +84,6 @@ const createTour = async ({ numberOfSeats, from, to, price, dateStart, dateEnd, 
     }
     return { ok: false, message: 'Не удалось создать тур' };
   } catch (e) {
-    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
@@ -134,11 +133,24 @@ const buyTour = async ({ id, name, email, quantity, airlineId }) => {
     });
     return { ok: true, message: 'Покупка прошла успешно' };
   } catch (e) {
+    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
 
-const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart, dateEnd, fromCode, toCode, title }) => {
+const updateTour = async ({
+  id,
+  desc,
+  price,
+  numberOfSeats,
+  from,
+  to,
+  dateStart,
+  dateEnd,
+  fromCode,
+  toCode,
+  title,
+}) => {
   try {
     const updateData = {};
     if (!validator.isInt(String(id))) {
@@ -237,7 +249,7 @@ const deleteTour = async (id) => {
 
 const searchTours = async ({ from, to, page, dateStart, dateEnd }) => {
   try {
-    const limit = 1;
+    const limit = 10;
     const where = {};
     if (page) {
       if (!validator.isInt(String(page))) {
@@ -261,13 +273,14 @@ const searchTours = async ({ from, to, page, dateStart, dateEnd }) => {
       if (!validator.isDate(String(dateStart))) {
         return { ok: false, message: 'дата отправки должна быть датой' };
       }
-      where.date_start = dateStart;
+      console.log(dateStart);
+      where.date_start = new Date(dateStart);
     }
     if (dateEnd) {
       if (!validator.isDate(String(dateEnd))) {
         return { ok: false, message: 'дата окончание должна быть датой' };
       }
-      where.date_end = dateEnd;
+      where.date_end = new Date(dateEnd);
     }
 
     if (from && to) {

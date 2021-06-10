@@ -32,12 +32,13 @@ const createTour = catchAsync(async (req, res) => {
 });
 
 const buyTour = catchAsync(async (req, res) => {
-  const { id, email, name, quantity } = req.body;
+  const { id, email, name, quantity, airId, } = req.body;
   const response = await toursService.buyTour({
     id,
     email: req.user ? req.user._json.email : email,
     name: req.user ? req.user.displayName : name,
     quantity,
+    airlineId: airId
   });
   if (!response.ok) {
     return res.status(500).send(response);

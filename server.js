@@ -8,8 +8,8 @@ const register = require('@react-ssr/express/register');
 const router = require('./routers/index');
 const session = require('express-session');
 
-
 const server = express();
+
 (async () => {
   await register(server);
   server.use(

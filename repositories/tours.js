@@ -12,7 +12,7 @@ const getTours = async (where, whereTour, offset = 0, limit = 10) => {
       'title',
       ['tour_from_code', 'fromCode'],
       ['tour_to_code', 'toCode'],
-      'desc',
+      ['tour_desc','desc'],
       'price',
       [
         sequelize.cast(
@@ -77,7 +77,7 @@ const createTour = async ({
   }
   return tourModel
     .create({
-      desc,
+      tour_desc: desc,
       title,
       price,
       number_of_seats: numberOfSeats,
@@ -151,7 +151,7 @@ const getTour = async ({ id }) => {
         ['tour_from_code', 'fromCode'],
         ['tour_to_code', 'toCode'],
         ['number_of_seats', 'numberOfSeats'],
-        'desc',
+        ['tour_desc', 'desc'],
         ['owner_id', 'ownerId'],
       ],
       where: {
@@ -161,10 +161,22 @@ const getTour = async ({ id }) => {
     .then((res) => res);
 };
 
-const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart, dateEnd, fromCode, toCode, title }) => {
+const updateTour = async ({
+  id,
+  desc,
+  price,
+  numberOfSeats,
+  from,
+  to,
+  dateStart,
+  dateEnd,
+  fromCode,
+  toCode,
+  title,
+}) => {
   const updateData = {};
   if (desc) {
-    updateData.desc = desc;
+    updateData.tour_desc = desc;
   }
   if (price) {
     updateData.price = price;

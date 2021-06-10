@@ -13,7 +13,7 @@ const tourModel = sequelize.define(
       defaultValue: '../../uploads/default.png',
     },
     title: DataTypes.TEXT,
-    desc: DataTypes.TEXT,
+    tour_desc: DataTypes.TEXT,
     price: DataTypes.DECIMAL,
     number_of_seats: DataTypes.INTEGER,
     tour_from: DataTypes.STRING,
