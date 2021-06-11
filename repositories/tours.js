@@ -5,14 +5,21 @@ const axios = require('axios');
 const travelpayotsApi = require('../modules/travelpayouts');
 const orderModel = require('../models/Order');
 
-const getTours = async (where, whereTour, offset = 0, limit = 10) => {
+const getTours = async (where, whereTour, offset, limit) => {
+  const info = {};
+  if (offset) {
+    info.offset = offset;
+  }
+  if (limit) {
+    info.limit = limit;
+  }
   const list = await tourModel.findAll({
     attributes: [
       ['tour_id', 'id'],
       'title',
       ['tour_from_code', 'fromCode'],
       ['tour_to_code', 'toCode'],
-      ['tour_desc','desc'],
+      ['tour_desc', 'desc'],
       'price',
       [
         sequelize.cast(
@@ -46,8 +53,7 @@ const getTours = async (where, whereTour, offset = 0, limit = 10) => {
       },
     ],
     where: whereTour,
-    offset,
-    limit,
+    ...info,
   });
   return list;
 };
@@ -78,6 +84,7 @@ const createTour = async ({
   return tourModel
     .create({
       tour_desc: desc,
+      poster: '../../uploads/default.png',
       title,
       price,
       number_of_seats: numberOfSeats,

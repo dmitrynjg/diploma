@@ -53,6 +53,8 @@ const Admin = ({ list }) => {
           <Form.Group className='mb-3'>
             <Form.Control
               type='text'
+              as="textarea" 
+              rows={3} 
               placeholder='Описание'
               onChange={(e) => setCreateTourData({ ...createTourData, desc: e.target.value })}
             />

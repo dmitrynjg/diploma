@@ -27,6 +27,7 @@ const uploadTour = async ({ id, image }) => {
     await tourRepository.uploadTour({ id, image });
     return { ok: true, message: 'Картинка сохранена' };
   } catch (e) {
+    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
@@ -273,7 +274,6 @@ const searchTours = async ({ from, to, page, dateStart, dateEnd }) => {
       if (!validator.isDate(String(dateStart))) {
         return { ok: false, message: 'дата отправки должна быть датой' };
       }
-      console.log(dateStart);
       where.date_start = new Date(dateStart);
     }
     if (dateEnd) {
