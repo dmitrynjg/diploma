@@ -4,8 +4,9 @@ const userModel = require('../models/User');
 const axios = require('axios');
 const travelpayotsApi = require('../modules/travelpayouts');
 const orderModel = require('../models/Order');
+const slideModel = require('../models/Slide');
 
-const getTours = async (where, whereTour, offset, limit) => {
+const getTours = async (where, offset, limit) => {
   const info = {};
   if (offset) {
     info.offset = offset;
@@ -13,14 +14,14 @@ const getTours = async (where, whereTour, offset, limit) => {
   if (limit) {
     info.limit = limit;
   }
-  const list = await tourModel.findAll({
+  const response = await tourModel.findAndCountAll({
     attributes: [
       ['tour_id', 'id'],
       'title',
       ['tour_from_code', 'fromCode'],
       ['tour_to_code', 'toCode'],
       ['tour_desc', 'desc'],
-      'price',
+      [sequelize.cast(sequelize.literal('price'), 'DOUBLE'), 'price'],
       [
         sequelize.cast(
           sequelize.literal(
@@ -46,16 +47,16 @@ const getTours = async (where, whereTour, offset, limit) => {
         all: true,
         model: userModel,
         attributes: [],
-        where: where,
         on: {
           id: sequelize.literal('`tours`.`owner_id`'),
         },
       },
     ],
-    where: whereTour,
+    where,
     ...info,
   });
-  return list;
+
+  return response;
 };
 
 const createTour = async ({
@@ -96,7 +97,7 @@ const createTour = async ({
       tour_from_code: fromCode,
       tour_to_code: toCode,
     })
-    .then((res) => res.null);
+    .then((res) => res.dataValues);
 };
 
 const searchCities = async ({ from, to }) => {
@@ -151,6 +152,7 @@ const getTour = async ({ id }) => {
           'freePlaces',
         ],
         'poster',
+        [sequelize.cast(sequelize.literal('price'), 'DOUBLE'), 'price'],
         ['tour_from', 'from'],
         ['tour_to', 'to'],
         ['date_start', 'dateStart'],
@@ -238,8 +240,41 @@ const uploadTour = async ({ id, image }) => {
   await tourModel.update({ poster: image }, { where: { tour_id: id } });
 };
 
+const getSlides = async (tourIdList) => {
+  return slideModel
+    .findAll({
+      raw: true,
+      attributes: [
+        ['slide_id', 'id'],
+        ['slide', 'image'],
+        ['tour_id', 'tourId'],
+      ],
+      where: { tour_id: tourIdList },
+    })
+    .then((res) => {
+      return res;
+    });
+};
+
+const uploadSlide = async ({ slide, id }) => {
+  await slideModel.create({
+    slide,
+    tour_id: id,
+  });
+};
+
+const deleteSlide = async (id) => {
+  await slideModel.destroy({
+    where: { slide_id: id },
+  });
+};
+
 module.exports = {
+  uploadSlide,
+  deleteSlide,
+  uploadTour,
   getTours,
+  getSlides,
   createTour,
   searchCities,
   searchTickets,

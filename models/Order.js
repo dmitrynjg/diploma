@@ -17,7 +17,9 @@ const orderModel = sequelize.define(
     flight_price: DataTypes.NUMBER
   },
   {
+    freezeTableName: true, 
     timestamps: false,
+    underscored: true,
   }
 );
 

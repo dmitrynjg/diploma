@@ -1,8 +1,23 @@
 const isBase64 = require('is-base64');
 const validator = require('validator');
 const tourRepository = require('../repositories/tours');
-const { Op } = require('sequelize');
-const getTours = async (where) => tourRepository.getTours(where).then((res) => res);
+
+const getTours = async (where) => tourRepository.getTours(where).then((res) => res.rows);
+
+const getTour = async ({ id }) => {
+  try {
+    if (!validator.isInt(id)) {
+      return { ok: false, message: 'Id должен быть целым числом' };
+    }
+    const tour = await tourRepository.getTour({ id });
+    if (!tour) {
+      return { ok: false, message: 'Тур не найден' };
+    }
+    return { ok: true, data: tour };
+  } catch (e) {
+    return { ok: false, message: 'Произошла ошибка' };
+  }
+};
 
 const searchCities = async ({ from, to }) => {
   if (typeof from !== 'string') {
@@ -27,19 +42,27 @@ const uploadTour = async ({ id, image }) => {
     await tourRepository.uploadTour({ id, image });
     return { ok: true, message: 'Картинка сохранена' };
   } catch (e) {
-    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
+
+const getSlides = async (tourIdList) => {
+  if (!tourIdList.every((value) => validator.isInt(String(value)))) {
+    return { ok: false, message: 'в списке id должны быть только числа' };
+  }
+  const list = await tourRepository.getSlides(tourIdList);
+  return { ok: true, list };
+};
+
 const createTour = async ({ numberOfSeats, from, to, price, dateStart, dateEnd, email, desc, title }) => {
   try {
-    if (!validator.isEmail(String(email || ''))) {
+    if (!validator.isEmail(String(email))) {
       return { ok: false, message: 'Это не email' };
     }
-    if (!validator.isDate(String(dateStart || ''))) {
+    if (!validator.isDate(String(dateStart))) {
       return { ok: false, message: 'Дата отправки яв-ся не дата' };
     }
-    if (!validator.isDate(dateEnd || '')) {
+    if (!validator.isDate(dateEnd)) {
       return { ok: false, message: 'Дата окончание яв-ся не дата' };
     }
     if (typeof title !== 'string') {
@@ -48,7 +71,7 @@ const createTour = async ({ numberOfSeats, from, to, price, dateStart, dateEnd, 
     if (new Date(dateStart) >= new Date(dateEnd)) {
       return { ok: false, message: 'Дата начало тура должна быть раньше чем дата окончания' };
     }
-    if (!validator.isInt(String(numberOfSeats || ''))) {
+    if (!validator.isInt(String(numberOfSeats))) {
       return { ok: false, message: 'количество мест должно быть целым числом' };
     }
     if (typeof from !== 'string') {
@@ -106,6 +129,9 @@ const buyTour = async ({ id, name, email, quantity, airlineId }) => {
     if (!validator.isInt(String(quantity || ''))) {
       return { ok: false, message: 'Количество должен быть числом' };
     }
+    if(quantity <= 0) {
+      return { ok: false, message: 'Количество билетов не может быть меньше 1' };
+    }
     const response = await tourRepository.getTour({ id });
     if (!response) {
       return { ok: false, message: 'Тур не найден' };
@@ -134,24 +160,11 @@ const buyTour = async ({ id, name, email, quantity, airlineId }) => {
     });
     return { ok: true, message: 'Покупка прошла успешно' };
   } catch (e) {
-    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
 
-const updateTour = async ({
-  id,
-  desc,
-  price,
-  numberOfSeats,
-  from,
-  to,
-  dateStart,
-  dateEnd,
-  fromCode,
-  toCode,
-  title,
-}) => {
+const updateTour = async ({ id, desc, price, numberOfSeats, from, to, dateStart, dateEnd, title }) => {
   try {
     const updateData = {};
     if (!validator.isInt(String(id))) {
@@ -231,7 +244,6 @@ const updateTour = async ({
     await tourRepository.updateTour(updateData);
     return { ok: true, message: 'Изменение прошло успешно' };
   } catch (e) {
-    console.log(e);
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
@@ -250,7 +262,7 @@ const deleteTour = async (id) => {
 
 const searchTours = async ({ from, to, page, dateStart, dateEnd }) => {
   try {
-    const limit = 10;
+    const limit = 5;
     const where = {};
     if (page) {
       if (!validator.isInt(String(page))) {
@@ -292,7 +304,8 @@ const searchTours = async ({ from, to, page, dateStart, dateEnd }) => {
       where.tour_from_code = searchCities.fromCode;
       where.tour_to_code = searchCities.toCode;
     }
-    const tours = await tourRepository.getTours(null, where, ((page ? page : 1) - 1) * limit, limit);
+    const response = await tourRepository.getTours(where, ((page ? page : 1) - 1) * limit, limit);
+    const tours = response.rows;
     let data = [];
     const cities = [];
 
@@ -326,10 +339,42 @@ const searchTours = async ({ from, to, page, dateStart, dateEnd }) => {
         numberOfChanges: ticketPrice[ticketKey].numberOfChanges,
       };
     });
-    return { ok: true, message: 'Поиск завершен', data };
+    return { ok: true, message: 'Поиск завершен', data, countPage: Math.ceil(response.count / limit) };
   } catch (e) {
     return { ok: false, message: 'Произошла ошибка' };
   }
 };
 
-module.exports = { getTours, createTour, searchCities, buyTour, updateTour, deleteTour, uploadTour, searchTours };
+const uploadSlide = async ({ slide, id }) => {
+  if (!isBase64(slide, { mimeRequired: true })) {
+    return { ok: false, message: 'slide должен быть в base64' };
+  }
+  if (!validator.isInt(String(id))) {
+    return { ok: false, message: 'id тура должен быть числом' };
+  }
+  await tourRepository.uploadSlide({ slide, id });
+  return { ok: true, message: 'Загрузка слайда прошла успешно' };
+};
+
+const deleteSlide = async (id) => {
+  if (!validator.isInt(String(id))) {
+    return { ok: false, message: 'id слайда должно быть числом' };
+  }
+  await tourRepository.deleteSlide(id);
+  return { ok: true, message: 'Слайд удален' };
+};
+
+module.exports = {
+  uploadSlide,
+  deleteSlide,
+  getTour,
+  getTours,
+  createTour,
+  searchCities,
+  buyTour,
+  updateTour,
+  deleteTour,
+  uploadTour,
+  searchTours,
+  getSlides,
+};

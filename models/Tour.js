@@ -7,6 +7,7 @@ const tourModel = sequelize.define(
     tour_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
+      autoIncrement: true,
     },
     poster: {
       type: DataTypes.STRING,

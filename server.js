@@ -7,20 +7,30 @@ require('./modules/passport');
 const register = require('@react-ssr/express/register');
 const router = require('./routers/index');
 const session = require('express-session');
+const cookieSession = require('cookie-session');
 
 const server = express();
 
 (async () => {
   await register(server);
   server.use(
-    session({
-      secret: 'secret',
-      resave: true,
-      saveUninitialized: true,
+    cookieSession({
+      name: 'session',
+      keys: ['secret'],
+      maxAge: 24 * 60 * 60 * 1000,
     })
   );
-  server.use(express.urlencoded({ extended: false }));
-  server.use(express.json());
+  // server.use(
+  //   session({
+  //     secret: 'secret',
+  //     resave: true,
+  //     secure: true,
+  //     saveUninitialized: true,
+  //   })
+  // );
+
+  server.use(express.urlencoded({ extended: false, limit: '50mb' }));
+  server.use(express.json({ limit: '50mb' }));
   server.use(compression());
   server.use(passport.initialize());
   server.use(passport.session());

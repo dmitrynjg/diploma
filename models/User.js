@@ -5,6 +5,7 @@ const userModel = sequelize.define('users', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
+    autoIncrement: true,
   },
   email: DataTypes.STRING,
   name: DataTypes.STRING,
@@ -13,5 +14,6 @@ const userModel = sequelize.define('users', {
   timestamps: false,
   underscored: true
 });
+
 
 module.exports = userModel;

@@ -4,16 +4,16 @@ const toursService = require('../services/tours');
 
 const getTours = catchAsync(async (req, res) => {
   const { email } = req.user;
-  const tours = await toursService.getTours(email);
+  const tours = await toursService.getTours({ email });
   return res.send(tours);
 });
 
 const indexPage = catchAsync(async (req, res) => {
-  res.render('index');
+  res.render('index', { user: req.user });
 });
 
 const createTour = catchAsync(async (req, res) => {
-  const { numberOfSeats, price, desc, from, to, dateStart, dateEnd, title } = req.body;;
+  const { numberOfSeats, price, desc, from, to, dateStart, dateEnd, title } = req.body;
   const createResponse = await toursService.createTour({
     numberOfSeats,
     from,
@@ -22,7 +22,7 @@ const createTour = catchAsync(async (req, res) => {
     price,
     dateStart,
     dateEnd,
-    email: req.user.emails[0].value,
+    email: req.user.email,
     title,
   });
   if (!createResponse.ok) {
@@ -32,13 +32,13 @@ const createTour = catchAsync(async (req, res) => {
 });
 
 const buyTour = catchAsync(async (req, res) => {
-  const { id, email, name, quantity, airId, } = req.body;
+  const { id, email, name, quantity, airId } = req.body;
   const response = await toursService.buyTour({
     id,
-    email: req.user ? req.user._json.email : email,
-    name: req.user ? req.user.displayName : name,
+    email: req.user ? req.user.email : email,
+    name: req.user ? req.user.name : name,
     quantity,
-    airlineId: airId
+    airlineId: airId,
   });
   if (!response.ok) {
     return res.status(500).send(response);
@@ -66,8 +66,9 @@ const updateTour = catchAsync(async (req, res) => {
 });
 
 const adminPage = catchAsync(async (req, res) => {
-  const tours = await toursService.getTours({ email: req.user.email });
+  const tours = await toursService.getTours({ owner_id: req.user.id });
   res.render('admin', {
+    user: req.user,
     list: tours.map((tour) => ({
       id: { value: tour.id, default: tour.id, type: 'hidden' },
       title: { value: tour.title, default: tour.title, type: 'text' },
@@ -84,6 +85,12 @@ const adminPage = catchAsync(async (req, res) => {
   });
 });
 
+const getSlides = catchAsync(async (req, res) => {
+  const { tourIdList } = req.body;
+  const response = await toursService.getSlides(tourIdList);
+  return res.send(response);
+});
+
 const deleteTour = catchAsync(async (req, res) => {
   const { id } = req.query;
   const response = await toursService.deleteTour(id);
@@ -96,18 +103,55 @@ const uploadTour = catchAsync(async (req, res) => {
   return res.send(response);
 });
 
+const uploadSlide = catchAsync(async (req, res) => {
+  const { slide, id } = req.body;
+  const response = await toursService.uploadSlide({ slide, id });
+  return res.send(response);
+});
+
 const searchPage = catchAsync(async (req, res) => {
   const { page, dateStart, dateEnd, from, to } = req.query;
   const response = await toursService.searchTours({ page, dateStart, dateEnd, from, to });
+  const slides = {};
+  const slideResponse = await toursService.getSlides(
+    response.data.map((tour) => {
+      slides[tour.id] = [];
+      return tour.id;
+    })
+  );
+  if (!slideResponse.ok) {
+    return res.send(slideResponse);
+  }
+
+  slideResponse.list.forEach((slide) => {
+    slides[slide.tourId].push(slide);
+  });
+
   let list = [];
   if (response.ok) {
-    list = response.data;
+    list = response.data.map((tour) => {
+      return { ...tour, slides: slides[tour.id] };
+    });
   }
-  res.render('search', { list, page: page ? page : 1 });
-  //res.send(list);
+  res.render('search', { list, page: page ? page : 1, countPage: response.countPage, user: req.user });
 });
+
+const deleteSlide = catchAsync(async (req, res) => {
+  const { id } = req.query;
+  const response = await toursService.deleteSlide(id);
+  return res.send(response);
+});
+
+const getTour = catchAsync(async (req, res) => {
+  const { id } = req.query;
+  const response = await toursService.getTour({ id });
+  return res.send(response);
+});
+
 module.exports = {
+  getTour,
   getTours,
+  deleteSlide,
   createTour,
   buyTour,
   updateTour,
@@ -116,4 +160,6 @@ module.exports = {
   uploadTour,
   indexPage,
   searchPage,
+  uploadSlide,
+  getSlides,
 };
