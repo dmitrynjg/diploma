@@ -5,7 +5,7 @@ const ModalContainer = ({ children, title, isShow = false, closeCb }) => {
     <>
       {isShow && (
         <div
-          style={{ height: '100vh', position: 'fixed', width: '100vw', zIndex: 4, background: '#00000091' }}
+          style={{ height: '100vh', position: 'fixed', width: '100vw', zIndex: 4, background: '#00000091', top:0, left:0 }}
           className='position-fixed'
         >
           <Modal.Dialog>

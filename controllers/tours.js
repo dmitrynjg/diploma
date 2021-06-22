@@ -9,7 +9,35 @@ const getTours = catchAsync(async (req, res) => {
 });
 
 const indexPage = catchAsync(async (req, res) => {
-  res.render('index', { user: req.user });
+  const response = await toursService.searchTours({
+    page: 1,
+    dateStart: null,
+    dateEnd: null,
+    from: null,
+    to: null,
+  });
+  const slides = {};
+  const slideResponse = await toursService.getSlides(
+    response.data.map((tour) => {
+      slides[tour.id] = [];
+      return tour.id;
+    })
+  );
+  if (!slideResponse.ok) {
+    return res.send(slideResponse);
+  }
+
+  slideResponse.list.forEach((slide) => {
+    slides[slide.tourId].push(slide);
+  });
+
+  let list = [];
+  if (response.ok) {
+    list = response.data.map((tour) => {
+      return { ...tour, slides: slides[tour.id] };
+    });
+  }
+  res.render('index', { user: req.user, list, page: 1, countPage: 1 });
 });
 
 const createTour = catchAsync(async (req, res) => {

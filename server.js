@@ -20,15 +20,6 @@ const server = express();
       maxAge: 24 * 60 * 60 * 1000,
     })
   );
-  // server.use(
-  //   session({
-  //     secret: 'secret',
-  //     resave: true,
-  //     secure: true,
-  //     saveUninitialized: true,
-  //   })
-  // );
-
   server.use(express.urlencoded({ extended: false, limit: '50mb' }));
   server.use(express.json({ limit: '50mb' }));
   server.use(compression());
