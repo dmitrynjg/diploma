@@ -1,9 +1,9 @@
 const Sequelize = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(process.env.DB_TABLE, process.env.DB_USER, process.env.DB_PASS, {
-  host: process.env.DB_HOST,
-  dialect: 'mysql',
+const sequelize = new Sequelize('db', 'user', 'pass', {
+  dialect: 'sqlite',
+  storage: 'path/db.sqlite',
   pool: {
     max: 3,
     min: 0,
@@ -11,7 +11,9 @@ const sequelize = new Sequelize(process.env.DB_TABLE, process.env.DB_USER, proce
     idle: 10000,
   },
   omitNull: true,
-  port: 3306,
+  operatorsAliases: false,
 });
+
+sequelize.sync();
 
 module.exports = sequelize;
